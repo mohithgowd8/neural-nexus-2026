@@ -22,3 +22,6 @@ yarn-error.log*
 # OS Generated
 .DS_Store
 Thumbs.db
+
+# Tunnel binary
+cloudflared.exe
