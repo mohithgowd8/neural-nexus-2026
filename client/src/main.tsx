@@ -4,7 +4,7 @@ import App from './App.js';
 import './index.css';
 import { handleStandaloneApi } from './utils/standaloneEngine.js';
 
-export const LIVE_BACKEND_URL = 'https://apparently-responding-conversation-consultants.trycloudflare.com';
+export const LIVE_BACKEND_URL = (typeof localStorage !== 'undefined' && localStorage.getItem('nexus_backend_url')) || 'https://tex-directories-auctions-floating.trycloudflare.com';
 
 // Intercept fetch for GitHub Pages or static host deployments to route to central backend
 const originalFetch = window.fetch;

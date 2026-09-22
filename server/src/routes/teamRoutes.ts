@@ -36,7 +36,6 @@ router.post('/register', async (req: Request, res: Response) => {
   try {
     const {
       team_code,
-      team_name,
       leader_name,
       leader_roll,
       member2_name,
@@ -46,6 +45,7 @@ router.post('/register', async (req: Request, res: Response) => {
       member4_name,
       member4_roll
     } = req.body;
+    const team_name = req.body.team_name || req.body.name;
 
     // 1. Basic validation
     if (!team_name || typeof team_name !== 'string' || !team_name.trim()) {

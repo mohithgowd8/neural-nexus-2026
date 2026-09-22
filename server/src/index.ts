@@ -72,8 +72,19 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/admin', adminRoutes);
 
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Optional: Serve static client build if built
-const clientDist = path.join(process.cwd(), '..', 'client', 'dist');
+const clientDistCandidates = [
+  path.resolve(__dirname, '..', '..', 'client', 'dist'),
+  path.resolve(process.cwd(), 'client', 'dist'),
+  path.resolve(process.cwd(), '..', 'client', 'dist')
+];
+const clientDist = clientDistCandidates.find(p => fs.existsSync(p)) || clientDistCandidates[0];
 app.use(express.static(clientDist));
 app.get('*', (req: Request, res: Response, next: NextFunction) => {
   if (req.path.startsWith('/api')) return next();

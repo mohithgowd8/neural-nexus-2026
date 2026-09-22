@@ -5,10 +5,10 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "node ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
-    "build": "tsc",
+    "build": "node ./node_modules/typescript/bin/tsc",
     "start": "node dist/index.js",
     "seed": "node ./node_modules/tsx/dist/cli.mjs src/db/seed.ts",
-    "test": "node ./node_modules/tsx/dist/cli.mjs src/test/runTests.ts"
+    "test": "node ./node_modules/tsx/dist/cli.mjs src/test/testAcceptance.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

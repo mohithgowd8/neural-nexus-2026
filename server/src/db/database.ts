@@ -1,11 +1,15 @@
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { CONFIG } from '../config.js';
 
 let dbInstance: SqlJsDatabase | null = null;
 let saveTimeout: NodeJS.Timeout | null = null;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function getDb(): Promise<SqlJsDatabase> {
   if (dbInstance) {
@@ -26,14 +30,20 @@ export async function getDb(): Promise<SqlJsDatabase> {
   }
 
   // Load and apply schema
-  const schemaPath = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'schema.sql');
+  const schemaPath = path.join(__dirname, 'schema.sql');
   let schemaSql = '';
   if (fs.existsSync(schemaPath)) {
     schemaSql = fs.readFileSync(schemaPath, 'utf-8');
   } else {
-    const fallbackPath = path.join(process.cwd(), 'src', 'db', 'schema.sql');
-    if (fs.existsSync(fallbackPath)) {
-      schemaSql = fs.readFileSync(fallbackPath, 'utf-8');
+    const candidates = [
+      path.join(process.cwd(), 'src', 'db', 'schema.sql'),
+      path.join(process.cwd(), 'server', 'src', 'db', 'schema.sql')
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) {
+        schemaSql = fs.readFileSync(c, 'utf-8');
+        break;
+      }
     }
   }
 
