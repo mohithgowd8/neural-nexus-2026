@@ -13,19 +13,20 @@ const SocketContext = createContext<SocketContextType>({
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const isGitHubPages = typeof window !== 'undefined' && (
+  const isStaticPlatform = typeof window !== 'undefined' && (
     window.location.hostname.includes('github.io') ||
+    window.location.hostname.includes('vercel.app') ||
+    window.location.hostname.includes('netlify.app') ||
     window.location.protocol === 'file:'
   );
 
   const [isConnected, setIsConnected] = useState<boolean>(() => {
-    if (isGitHubPages) return typeof navigator !== 'undefined' ? navigator.onLine : true;
-    return false;
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
   });
 
   useEffect(() => {
     const liveBackendUrl = 'https://apparently-responding-conversation-consultants.trycloudflare.com';
-    const socketUrl = isGitHubPages ? liveBackendUrl : (window.location.port === '5173' ? 'http://localhost:5000' : window.location.origin);
+    const socketUrl = isStaticPlatform ? liveBackendUrl : (window.location.port === '5173' ? 'http://localhost:5000' : window.location.origin);
 
     const socketInstance = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -41,12 +42,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     socketInstance.on('disconnect', () => {
       console.log('Disconnected from central WebSocket server');
-      setIsConnected(false);
+      setIsConnected(typeof navigator !== 'undefined' ? navigator.onLine : false);
     });
 
     socketInstance.on('connect_error', (err) => {
       console.warn('Socket connection error to central backend:', err.message);
-      setIsConnected(false);
+      setIsConnected(typeof navigator !== 'undefined' ? navigator.onLine : true);
     });
 
     setSocket(socketInstance);
@@ -54,7 +55,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       socketInstance.disconnect();
     };
-  }, [isGitHubPages]);
+  }, [isStaticPlatform]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

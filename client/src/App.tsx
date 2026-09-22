@@ -17,7 +17,10 @@ import { AdminLayout } from './pages/AdminLayout.js';
 import { AdminLoginPage } from './pages/AdminLoginPage.js';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 
-const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+const isHashRouting = typeof window !== 'undefined' && (
+  window.location.hostname.includes('github.io') ||
+  Boolean(window.location.hash)
+);
 
 function getInitialRoute(): string {
   if (typeof window === 'undefined') return '/';
@@ -52,7 +55,7 @@ export function App() {
   }, []);
 
   const navigate = (path: string) => {
-    if (isGitHubPages) {
+    if (isHashRouting || window.location.hash) {
       window.location.hash = path;
     } else {
       const basePath = window.location.pathname.startsWith('/neural-nexus-2026') ? '/neural-nexus-2026' : '';

@@ -28,13 +28,8 @@ export const OfflineBanner: React.FC = () => {
     };
   }, []);
 
-  const isGitHubPages = typeof window !== 'undefined' && (
-    window.location.hostname.includes('github.io') ||
-    window.location.protocol === 'file:'
-  );
-
-  // In GitHub Pages standalone mode, only show if browser has truly lost internet connection
-  const shouldShowOffline = isGitHubPages ? !isOnline : (!isOnline || !isConnected);
+  // Only show if user's device is truly disconnected from the internet
+  const shouldShowOffline = !isOnline;
 
   if (shouldShowOffline) {
     return (

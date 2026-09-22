@@ -12,8 +12,11 @@ window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Pr
   const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
 
   if (url.includes('/api/')) {
-    const isGitHubPages = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
-    if (isGitHubPages) {
+    const isStaticFrontend = window.location.hostname.includes('github.io') ||
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname.includes('netlify.app') ||
+      window.location.protocol === 'file:';
+    if (isStaticFrontend) {
       try {
         const apiPathAndQuery = url.substring(url.indexOf('/api/'));
         const fullUrl = `${LIVE_BACKEND_URL}${apiPathAndQuery}`;
