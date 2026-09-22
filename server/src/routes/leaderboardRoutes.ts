@@ -9,7 +9,7 @@ router.get('/', async (req: Request, res: Response) => {
     const eventState = await db.get('SELECT * FROM event_state WHERE id = 1');
     const settings = await db.get('SELECT * FROM quiz_settings WHERE id = 1');
 
-    const isAdmin = req.headers['x-admin-request'] === 'true';
+    const isAdmin = req.headers['x-admin-request'] === 'true' || !!req.headers['authorization'];
     const isCompleted = eventState?.status === 'COMPLETED';
     const isVisible = settings?.leaderboard_visible === 1;
 
