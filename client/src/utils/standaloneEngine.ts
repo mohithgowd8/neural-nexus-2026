@@ -113,7 +113,7 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
       return new Response(JSON.stringify({
         team: JSON.parse(teamStr),
         session: sessStr ? JSON.parse(sessStr) : null,
-        eventState: 'LIVE'
+        eventState: getEventStatus()
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
   }

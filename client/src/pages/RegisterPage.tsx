@@ -37,15 +37,33 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Fetch or reuse unique team code on mount
+  // Auto-redirect if already registered
   useEffect(() => {
+    const code = existingCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+    const savedTeam = team || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team') : null);
+    if (code && savedTeam) {
+      fetch(`/api/quiz/current?teamCode=${code}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.eventState === 'LIVE' && !data.completed) {
+            onNavigate('/quiz');
+          } else {
+            onNavigate('/waiting');
+          }
+        })
+        .catch(() => {
+          onNavigate('/waiting');
+        });
+      return;
+    }
+
     if (existingCode) {
       setTeamCode(existingCode);
       return;
     }
 
     fetchTeamCode();
-  }, [existingCode]);
+  }, [existingCode, team, onNavigate]);
 
   const fetchTeamCode = async () => {
     setLoadingCode(true);
@@ -118,6 +136,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.error && data.error.includes('already registered')) {
+          onNavigate('/waiting');
+          return;
+        }
         setErrorMsg(data.error || 'Registration failed. Please check your details.');
         setIsSubmitting(false);
         return;
@@ -387,7 +409,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 </>
               ) : (
                 <>
-                  <span>START QUIZ</span>
+                  <span>REGISTER TEAM &amp; JOIN WAITING ROOM</span>
                   <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                 </>
               )}
