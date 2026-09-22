@@ -2,7 +2,12 @@
 
 > **"THINK. DECODE. INNOVATE."**  
 > Organized by the **Department of Artificial Intelligence & Data Science**  
-> A tournament-grade, real-time competition platform where every team receives an independent randomized 100-question sequence, strict 2-minute server-synchronized question timers, speed-based scoring, zero dummy data, and live admin controls.
+
+## 🌐 Live Website Links
+
+- 🚀 **Live GitHub Pages URL (Click to Open)**:  
+  ### 👉 [https://mohithgowd8.github.io/neural-nexus-2026/](https://mohithgowd8.github.io/neural-nexus-2026/)
+- 💻 **GitHub Repository**: [https://github.com/mohithgowd8/neural-nexus-2026](https://github.com/mohithgowd8/neural-nexus-2026)
 
 ---
 
