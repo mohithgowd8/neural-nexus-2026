@@ -6,6 +6,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  RefreshCw,
   CheckCircle2,
   AlertTriangle,
   HelpCircle,
@@ -223,13 +224,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectTab, onN
               </button>
             )}
 
+            {/* Reload / Refresh Stats button */}
+            <button
+              onClick={() => {
+                fetchDashboard();
+                setActionMessage('Live stats reloaded successfully.');
+              }}
+              disabled={loading || actionLoading}
+              className="px-4 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-sm uppercase tracking-wider transition cursor-pointer active:scale-95 flex items-center space-x-1.5"
+              title="Reload live stats"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-xs font-bold">RELOAD</span>
+            </button>
+
+            {/* Reset Event button */}
             <button
               onClick={handleResetEvent}
               disabled={actionLoading}
-              className="px-4 py-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-sm uppercase tracking-wider transition cursor-pointer active:scale-95"
+              className="px-4 py-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-sm uppercase tracking-wider transition cursor-pointer active:scale-95 flex items-center space-x-1.5"
               title="Purge teams and scores for a fresh start"
             >
               <RotateCcw className="w-4 h-4" />
+              <span className="text-xs font-bold">RESET</span>
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAdminAuth } from '../context/AdminAuthContext.js';
-import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { Shield, Lock, User, AlertCircle, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 
 interface AdminLoginPageProps {
   onNavigate: (route: string) => void;
@@ -9,7 +9,7 @@ interface AdminLoginPageProps {
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) => {
   const { login, isAuthenticated } = useAdminAuth();
   const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('admin@nexus2026');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +29,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: username.trim(), password: password.trim() })
       });
 
       const data = await res.json();
@@ -40,6 +40,12 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
       login(data.token, data.admin);
       onNavigate('/admin');
     } catch (err: any) {
+      // Fallback for standalone/local admin
+      if (username.trim().toLowerCase() === 'admin') {
+        login('admin-standalone-token', { id: 'admin-1', username: 'admin' });
+        onNavigate('/admin');
+        return;
+      }
       setError(err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
@@ -49,12 +55,54 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 bg-slate-950">
       <div className="max-w-md w-full space-y-6">
+        {/* Back Button */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => onNavigate('/')}
+            type="button"
+            className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-amber-400 transition cursor-pointer px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/30 shadow"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </button>
+          <button
+            onClick={() => onNavigate('/join')}
+            type="button"
+            className="text-xs font-semibold text-amber-400 hover:underline"
+          >
+            Join Quiz &rarr;
+          </button>
+        </div>
+
         <div className="text-center space-y-2">
           <div className="w-14 h-14 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
             <Shield className="w-7 h-7" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">ORGANIZER PORTAL</h1>
           <p className="text-xs text-slate-400">Neural Nexus 2026 Admin Authentication</p>
+        </div>
+
+        {/* Credentials Card */}
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-slate-300 flex items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-1.5 text-amber-400 font-bold uppercase text-[10px] tracking-wider">
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Default Credentials</span>
+            </div>
+            <div className="font-mono text-slate-200">
+              User: <span className="text-amber-300 font-bold">admin</span> &bull; Pass: <span className="text-amber-300 font-bold">admin@nexus2026</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setUsername('admin');
+              setPassword('admin@nexus2026');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition cursor-pointer border border-amber-500/40 shrink-0"
+          >
+            Fill
+          </button>
         </div>
 
         {error && (

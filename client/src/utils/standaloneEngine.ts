@@ -19,12 +19,21 @@ function generateCode(): string {
   return `NN26-${code}`;
 }
 
-// In-browser mock backend handler for GitHub Pages
 export async function handleStandaloneApi(url: string, init?: RequestInit): Promise<Response | null> {
   const pathname = url.replace(/https?:\/\/[^\/]+/, '').split('?')[0];
   const searchParams = new URL(url, 'http://localhost').searchParams;
   const method = (init?.method || 'GET').toUpperCase();
-  const body = init?.body ? JSON.parse(init.body as string) : {};
+
+  let body: any = {};
+  if (init?.body) {
+    try {
+      body = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+    } catch {
+      body = {};
+    }
+  }
+
+  const getEventStatus = (): string => localStorage.getItem('nexus_event_status') || 'LIVE';
 
   // 1. Health check
   if (pathname === '/api/health') {
@@ -139,12 +148,40 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
 
     const sess = JSON.parse(sessStr);
     const totalQuestions = sess.sequence.length;
+    const currentStatus = getEventStatus();
+
+    // 5a. If event is PAUSED (WAITING)
+    if (currentStatus === 'WAITING') {
+      return new Response(JSON.stringify({
+        eventState: 'WAITING',
+        completed: false,
+        message: 'Quiz is paused by organizer.'
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // 5b. If event is ENDED (COMPLETED) by organizer
+    if (currentStatus === 'COMPLETED') {
+      sess.completed = true;
+      localStorage.setItem(`nexus_sess_${teamCode}`, JSON.stringify(sess));
+      const accuracy = totalQuestions > 0 ? Math.round((sess.correctCount / totalQuestions) * 100) : 0;
+      const avgTime = sess.currentIndex > 0 ? Math.round((sess.totalTimeMs / Math.max(1, sess.currentIndex)) / 100) / 10 : 0;
+      return new Response(JSON.stringify({
+        eventState: 'COMPLETED',
+        completed: true,
+        teamCode,
+        totalScore: sess.totalScore,
+        correctCount: sess.correctCount,
+        totalQuestions,
+        accuracy,
+        avgAnswerTime: avgTime
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
 
     if (sess.completed || sess.currentIndex >= totalQuestions) {
       const accuracy = totalQuestions > 0 ? Math.round((sess.correctCount / totalQuestions) * 100) : 0;
       const avgTime = sess.currentIndex > 0 ? Math.round((sess.totalTimeMs / sess.currentIndex) / 100) / 10 : 0;
       return new Response(JSON.stringify({
-        eventState: 'LIVE',
+        eventState: currentStatus,
         completed: true,
         teamCode,
         totalScore: sess.totalScore,
@@ -162,7 +199,7 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
     const timeRemaining = Math.max(0, 120 - elapsedSeconds);
 
     return new Response(JSON.stringify({
-      eventState: 'LIVE',
+      eventState: currentStatus,
       completed: false,
       teamCode,
       currentIndex: sess.currentIndex + 1,
@@ -328,37 +365,189 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // 10. Admin stats/login
+  // 10. Admin Authentication
   if (pathname === '/api/auth/login') {
+    const u = (body.username || '').trim();
     return new Response(JSON.stringify({
       message: 'Login successful',
       token: 'admin-standalone-token',
-      admin: { id: 'admin-1', username: 'admin' }
+      admin: { id: 'admin-1', username: u || 'admin', email: 'admin@neuralnexus.edu' }
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
+  // 11. Event Status Controls (PAUSE QUIZ, END QUIZ, START QUIZ)
+  if (pathname === '/api/admin/event/status') {
+    if (method === 'POST') {
+      const status = body.status || 'LIVE';
+      localStorage.setItem('nexus_event_status', status);
+      return new Response(JSON.stringify({
+        message: `Event status updated to ${status}`,
+        eventState: { status }
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    const status = getEventStatus();
+    return new Response(JSON.stringify({
+      status,
+      eventState: { status }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 12. Reset Event (Purge teams and scores)
+  if (pathname === '/api/admin/event/reset' && method === 'POST') {
+    const allTeams = JSON.parse(localStorage.getItem('nexus_all_teams') || '[]');
+    allTeams.forEach((t: any) => {
+      localStorage.removeItem(`nexus_team_${t.id}`);
+      localStorage.removeItem(`nexus_sess_${t.id}`);
+    });
+    localStorage.removeItem('nexus_all_teams');
+    localStorage.setItem('nexus_event_status', 'WAITING');
+    return new Response(JSON.stringify({
+      message: 'Event reset successfully. All teams and scores cleared.',
+      eventState: { status: 'WAITING' }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 13. Admin Dashboard & Live Stats
   if (pathname === '/api/admin/dashboard' || pathname === '/api/admin/stats') {
     const allTeams = JSON.parse(localStorage.getItem('nexus_all_teams') || '[]');
+    let completedCount = 0;
+    let totalScoreSum = 0;
+    let totalAnswersCount = 0;
+
+    allTeams.forEach((t: any) => {
+      const sessStr = localStorage.getItem(`nexus_sess_${t.id}`);
+      if (sessStr) {
+        try {
+          const s = JSON.parse(sessStr);
+          if (s.completed) completedCount++;
+          totalScoreSum += (s.totalScore || 0);
+          totalAnswersCount += Object.keys(s.answers || {}).length;
+        } catch {}
+      }
+    });
+
+    const status = getEventStatus();
     return new Response(JSON.stringify({
       totalTeams: allTeams.length,
-      activeSessions: allTeams.length,
-      completedSessions: 0,
-      waitingTeams: 0,
-      totalAnswers: 0,
-      totalQuestions: 100,
-      activeQuestions: 100,
-      avgScore: 0,
-      eventStatus: 'LIVE',
-      settings: { total_questions: 100, question_time_seconds: 120, max_points: 10 }
+      activeSessions: Math.max(0, allTeams.length - completedCount),
+      completedSessions: completedCount,
+      waitingTeams: status === 'WAITING' ? allTeams.length : 0,
+      totalAnswers: totalAnswersCount,
+      totalQuestions: NEXUS_100_QUESTIONS.length,
+      activeQuestions: NEXUS_100_QUESTIONS.length,
+      avgScore: allTeams.length > 0 ? Math.round(totalScoreSum / allTeams.length) : 0,
+      eventStatus: status,
+      settings: { total_questions: NEXUS_100_QUESTIONS.length, question_time_seconds: 120, max_points: 10 }
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
+  // 14. Admin Teams Management
+  if (pathname === '/api/admin/teams') {
+    const allTeams = JSON.parse(localStorage.getItem('nexus_all_teams') || '[]');
+    const teamsWithStatus = allTeams.map((t: any) => {
+      const sessStr = localStorage.getItem(`nexus_sess_${t.id}`);
+      let completed = false;
+      let score = 0;
+      let answersCount = 0;
+      if (sessStr) {
+        try {
+          const s = JSON.parse(sessStr);
+          completed = s.completed || false;
+          score = s.totalScore || 0;
+          answersCount = Object.keys(s.answers || {}).length;
+        } catch {}
+      }
+      return {
+        ...t,
+        status: completed ? 'COMPLETED' : 'ACTIVE',
+        score,
+        answersCount
+      };
+    });
+    return new Response(JSON.stringify({ teams: teamsWithStatus }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  if (pathname.startsWith('/api/admin/teams/') && method === 'DELETE') {
+    const code = pathname.split('/').pop()?.toUpperCase();
+    const allTeams = JSON.parse(localStorage.getItem('nexus_all_teams') || '[]');
+    const filtered = allTeams.filter((t: any) => t.id !== code);
+    localStorage.setItem('nexus_all_teams', JSON.stringify(filtered));
+    localStorage.removeItem(`nexus_team_${code}`);
+    localStorage.removeItem(`nexus_sess_${code}`);
+    return new Response(JSON.stringify({ message: 'Team deleted successfully' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // 15. Rounds Controller Endpoints
+  if (pathname.startsWith('/api/admin/rounds/')) {
+    if (pathname.endsWith('/start')) {
+      localStorage.setItem('nexus_event_status', 'LIVE');
+      return new Response(JSON.stringify({ message: 'Round started' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname.endsWith('/pause')) {
+      localStorage.setItem('nexus_event_status', 'WAITING');
+      return new Response(JSON.stringify({ message: 'Round paused' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (pathname.endsWith('/end')) {
+      localStorage.setItem('nexus_event_status', 'COMPLETED');
+      return new Response(JSON.stringify({ message: 'Round ended' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
+
+  if (pathname === '/api/admin/rounds' || pathname === '/api/rounds/current') {
+    const status = getEventStatus();
+    return new Response(JSON.stringify({
+      rounds: [{
+        id: 'round-1',
+        name: 'Round 1: 100 Basic AI Tools',
+        status: status === 'LIVE' ? 'ACTIVE' : (status === 'COMPLETED' ? 'COMPLETED' : 'PENDING'),
+        total_questions: NEXUS_100_QUESTIONS.length,
+        time_limit_seconds: 120
+      }],
+      currentRound: {
+        id: 'round-1',
+        name: 'Round 1: 100 Basic AI Tools',
+        status: status === 'LIVE' ? 'ACTIVE' : (status === 'COMPLETED' ? 'COMPLETED' : 'PENDING'),
+        total_questions: NEXUS_100_QUESTIONS.length,
+        time_limit_seconds: 120
+      }
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 16. Questions Endpoints
   if (pathname === '/api/admin/questions') {
     return new Response(JSON.stringify({
       total: NEXUS_100_QUESTIONS.length,
       questions: NEXUS_100_QUESTIONS,
       categories: ['Basic AI Tools']
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (pathname === '/api/admin/questions/load-100') {
+    return new Response(JSON.stringify({
+      message: '100 Basic AI Tools questions loaded successfully',
+      total: NEXUS_100_QUESTIONS.length
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 17. Settings Endpoints
+  if (pathname === '/api/admin/settings') {
+    if (method === 'PUT') {
+      const saved = JSON.parse(localStorage.getItem('nexus_settings') || '{}');
+      const updated = { ...saved, ...body };
+      localStorage.setItem('nexus_settings', JSON.stringify(updated));
+      return new Response(JSON.stringify({ message: 'Settings saved', settings: updated }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    const settings = JSON.parse(localStorage.getItem('nexus_settings') || '{"total_questions":100,"question_time_seconds":120,"max_points":10,"show_leaderboard":1}');
+    return new Response(JSON.stringify({ settings }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
   return null;

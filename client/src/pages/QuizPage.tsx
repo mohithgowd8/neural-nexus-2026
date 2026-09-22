@@ -114,7 +114,46 @@ export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchCurrentQuestion();
-  }, [teamCode]);
+
+    // Check status periodically for organizer commands (Pause / End / Reset)
+    const statusInterval = setInterval(async () => {
+      if (completed || isSubmitting) return;
+      try {
+        const res = await fetch(`/api/quiz/current?teamCode=${teamCode}&sessionId=${sessionId || ''}`);
+        const data = await res.json();
+        if (data.eventState === 'WAITING') {
+          onNavigate('/waiting');
+        } else if (data.eventState === 'COMPLETED' || data.completed) {
+          setCompleted(true);
+          setResultsData(data);
+        }
+      } catch {
+        // silent
+      }
+    }, 2500);
+
+    return () => clearInterval(statusInterval);
+  }, [teamCode, sessionId, completed, isSubmitting, onNavigate]);
+
+  // Listen to live socket events for pause / end
+  useEffect(() => {
+    if (!socket) return;
+    const handleStatus = (data: { status: string }) => {
+      if (data.status === 'WAITING') {
+        onNavigate('/waiting');
+      } else if (data.status === 'COMPLETED') {
+        setCompleted(true);
+      }
+    };
+    socket.on('EVENT_STATUS_CHANGED', handleStatus);
+    socket.on('QUIZ_PAUSED', () => onNavigate('/waiting'));
+    socket.on('QUIZ_ENDED', () => setCompleted(true));
+    return () => {
+      socket.off('EVENT_STATUS_CHANGED', handleStatus);
+      socket.off('QUIZ_PAUSED');
+      socket.off('QUIZ_ENDED');
+    };
+  }, [socket, onNavigate]);
 
   // Real-time local countdown synchronizer
   useEffect(() => {
