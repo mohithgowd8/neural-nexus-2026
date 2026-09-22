@@ -17,22 +17,47 @@ import { AdminLayout } from './pages/AdminLayout.js';
 import { AdminLoginPage } from './pages/AdminLoginPage.js';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 
-export function App() {
-  const [currentRoute, setCurrentRoute] = useState<string>(() => {
-    return window.location.pathname || '/';
-  });
+const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
 
-  // Handle browser back/forward buttons
+function getInitialRoute(): string {
+  if (typeof window === 'undefined') return '/';
+  if (window.location.hash) {
+    const h = window.location.hash.replace(/^#/, '');
+    return h.startsWith('/') ? h : `/${h}`;
+  }
+  let p = window.location.pathname || '/';
+  if (p.startsWith('/neural-nexus-2026')) {
+    p = p.slice('/neural-nexus-2026'.length);
+  }
+  if (p.length > 1 && p.endsWith('/')) {
+    p = p.slice(0, -1);
+  }
+  return p || '/';
+}
+
+export function App() {
+  const [currentRoute, setCurrentRoute] = useState<string>(() => getInitialRoute());
+
+  // Handle browser back/forward buttons and hash navigation
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentRoute(window.location.pathname || '/');
+    const handleRoute = () => {
+      setCurrentRoute(getInitialRoute());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handleRoute);
+    window.addEventListener('hashchange', handleRoute);
+    return () => {
+      window.removeEventListener('popstate', handleRoute);
+      window.removeEventListener('hashchange', handleRoute);
+    };
   }, []);
 
   const navigate = (path: string) => {
-    window.history.pushState({}, '', path);
+    if (isGitHubPages) {
+      window.location.hash = path;
+    } else {
+      const basePath = window.location.pathname.startsWith('/neural-nexus-2026') ? '/neural-nexus-2026' : '';
+      window.history.pushState({}, '', basePath + path);
+    }
     setCurrentRoute(path);
     window.scrollTo(0, 0);
   };
