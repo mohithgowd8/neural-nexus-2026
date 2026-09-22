@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: neural-nexus-backend
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node ./node_modules/tsx/dist/cli.mjs src/index.ts
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PASSWORD
+        value: "#25me1a5476"
