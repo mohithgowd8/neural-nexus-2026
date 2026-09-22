@@ -28,11 +28,19 @@ export const OfflineBanner: React.FC = () => {
     };
   }, []);
 
-  if (!isOnline || !isConnected) {
+  const isGitHubPages = typeof window !== 'undefined' && (
+    window.location.hostname.includes('github.io') ||
+    window.location.protocol === 'file:'
+  );
+
+  // In GitHub Pages standalone mode, only show if browser has truly lost internet connection
+  const shouldShowOffline = isGitHubPages ? !isOnline : (!isOnline || !isConnected);
+
+  if (shouldShowOffline) {
     return (
       <div className="bg-amber-600/90 backdrop-blur-sm text-black px-4 py-2 text-xs sm:text-sm font-semibold flex items-center justify-center space-x-2 sticky top-16 sm:top-20 z-30 shadow-md">
         <WifiOff className="w-4 h-4 animate-bounce" />
-        <span>Connection interrupted. Your saved answers are safe. Reconnecting...</span>
+        <span>No internet connection. Reconnecting...</span>
         <RefreshCw className="w-3.5 h-3.5 animate-spin ml-2 text-black/70" />
       </div>
     );
@@ -42,7 +50,7 @@ export const OfflineBanner: React.FC = () => {
     return (
       <div className="bg-emerald-600 text-white px-4 py-1.5 text-xs sm:text-sm font-medium flex items-center justify-center space-x-2 sticky top-16 sm:top-20 z-30 animate-fadeIn">
         <CheckCircle2 className="w-4 h-4" />
-        <span>Connection restored. Answers synchronized.</span>
+        <span>Connection restored. System online.</span>
       </div>
     );
   }
