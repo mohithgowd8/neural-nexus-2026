@@ -59,16 +59,13 @@ export async function getDb(): Promise<SqlJsDatabase> {
     );
   }
 
-  // Initialize default admin if missing
-  const adminRes = dbInstance.exec("SELECT id FROM admins LIMIT 1");
-  if (!adminRes || adminRes.length === 0 || !adminRes[0].values.length) {
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(CONFIG.ADMIN_PASSWORD, salt);
-    dbInstance.run(
-      "INSERT OR REPLACE INTO admins (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
-      ['admin-1', CONFIG.ADMIN_USERNAME, hash, new Date().toISOString()]
-    );
-  }
+  // Initialize default admin or sync password
+  const salt = bcrypt.genSaltSync(10);
+  const hash = bcrypt.hashSync(CONFIG.ADMIN_PASSWORD, salt);
+  dbInstance.run(
+    "INSERT OR REPLACE INTO admins (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
+    ['admin-1', CONFIG.ADMIN_USERNAME, hash, new Date().toISOString()]
+  );
 
   // Persist initial state
   persistDb();

@@ -45,6 +45,21 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
+  // 1a. Admin Login
+  if (pathname === '/api/auth/login' && method === 'POST') {
+    const { username, password } = body;
+    if (username?.trim().toLowerCase() === 'admin' && (password?.trim() === '#25me1a5476' || password?.trim() === 'admin123')) {
+      return new Response(JSON.stringify({
+        message: 'Login successful',
+        token: 'admin-standalone-token',
+        admin: { id: 'admin-1', username: 'admin', email: 'admin@neuralnexus.edu' }
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      error: 'Invalid username or password'
+    }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
+
   // 2. Generate Team Code
   if (pathname === '/api/teams/generate-code') {
     return new Response(JSON.stringify({

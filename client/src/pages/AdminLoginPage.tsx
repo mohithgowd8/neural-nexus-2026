@@ -8,8 +8,8 @@ interface AdminLoginPageProps {
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) => {
   const { login, isAuthenticated } = useAdminAuth();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin@nexus2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,12 +41,12 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
       onNavigate('/admin');
     } catch (err: any) {
       // Fallback for standalone/local admin
-      if (username.trim().toLowerCase() === 'admin') {
+      if (username.trim().toLowerCase() === 'admin' && password.trim() === '#25me1a5476') {
         login('admin-standalone-token', { id: 'admin-1', username: 'admin' });
         onNavigate('/admin');
         return;
       }
-      setError(err.message || 'Invalid credentials');
+      setError(err.message || 'Invalid username or password');
     } finally {
       setLoading(false);
     }
@@ -82,29 +82,6 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
           <p className="text-xs text-slate-400">Neural Nexus 2026 Admin Authentication</p>
         </div>
 
-        {/* Credentials Card */}
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-slate-300 flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-1.5 text-amber-400 font-bold uppercase text-[10px] tracking-wider">
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Default Credentials</span>
-            </div>
-            <div className="font-mono text-slate-200">
-              User: <span className="text-amber-300 font-bold">admin</span> &bull; Pass: <span className="text-amber-300 font-bold">admin@nexus2026</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setUsername('admin');
-              setPassword('admin@nexus2026');
-            }}
-            className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition cursor-pointer border border-amber-500/40 shrink-0"
-          >
-            Fill
-          </button>
-        </div>
-
         {error && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start space-x-2">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -124,6 +101,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                placeholder="Enter admin username"
                 className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition"
               />
             </div>
@@ -140,7 +118,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onNavigate }) =>
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder="Enter admin password"
                 className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition"
               />
             </div>
