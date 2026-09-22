@@ -33,7 +33,11 @@ interface Question {
 }
 
 export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
-  const { team, teamCode, sessionId } = useTeam();
+  const { team: contextTeam, teamCode: contextCode, sessionId: contextSessionId } = useTeam();
+  const savedTeamStr = typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team') : null;
+  const team = contextTeam || (savedTeamStr ? (() => { try { return JSON.parse(savedTeamStr); } catch { return null; } })() : null);
+  const teamCode = contextCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+  const sessionId = contextSessionId || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_session_id') : null);
   const { socket } = useSocket();
 
   // Quiz state
@@ -60,9 +64,10 @@ export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
   // Anti-cheat tab switch detection
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && socket && teamCode) {
+      const code = teamCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+      if (document.hidden && socket && code) {
         socket.emit('TAB_SWITCH_DETECTED', {
-          teamCode,
+          teamCode: code,
           currentIndex
         });
       }
@@ -74,16 +79,18 @@ export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
 
   // Load current question from server
   const fetchCurrentQuestion = async () => {
-    if (!teamCode) {
+    const code = teamCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+    if (!code) {
       onNavigate('/join');
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch(`/api/quiz/current?teamCode=${teamCode}&sessionId=${sessionId || ''}`);
+      const res = await fetch(`/api/quiz/current?teamCode=${code}&sessionId=${sessionId || ''}`);
       const data = await res.json();
 
+      // STRICT ADMIN CHECK: If event is in WAITING state, DO NOT ALLOW QUIZ ACCESS
       if (data.eventState === 'WAITING') {
         onNavigate('/waiting');
         return;
@@ -118,8 +125,10 @@ export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
     // Check status periodically for organizer commands (Pause / End / Reset)
     const statusInterval = setInterval(async () => {
       if (completed || isSubmitting) return;
+      const code = teamCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+      if (!code) return;
       try {
-        const res = await fetch(`/api/quiz/current?teamCode=${teamCode}&sessionId=${sessionId || ''}`);
+        const res = await fetch(`/api/quiz/current?teamCode=${code}&sessionId=${sessionId || ''}`);
         const data = await res.json();
         if (data.eventState === 'WAITING') {
           onNavigate('/waiting');
@@ -130,7 +139,7 @@ export const QuizPage: React.FC<QuizPageProps> = ({ onNavigate }) => {
       } catch {
         // silent
       }
-    }, 2500);
+    }, 2000);
 
     return () => clearInterval(statusInterval);
   }, [teamCode, sessionId, completed, isSubmitting, onNavigate]);

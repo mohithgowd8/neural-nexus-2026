@@ -17,7 +17,7 @@ interface RegisterPageProps {
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
-  const { teamCode: existingCode, setTeamSession } = useTeam();
+  const { team, teamCode: existingCode, setTeamSession, logoutTeam } = useTeam();
 
   const [teamCode, setTeamCode] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -123,14 +123,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         return;
       }
 
-      // Save to context & localStorage
+      // Save to context & localStorage synchronously
+      localStorage.setItem('nexus_team', JSON.stringify(data.team));
+      localStorage.setItem('nexus_team_code', data.teamCode);
+      localStorage.setItem('nexus_session_id', data.sessionId);
       setTeamSession(data.team, data.sessionId);
 
-      // Route according to event state
-      if (data.eventState === 'WAITING') {
-        onNavigate('/waiting');
-      } else {
+      // Route strictly according to event state
+      if (data.eventState === 'LIVE') {
         onNavigate('/quiz');
+      } else {
+        onNavigate('/waiting');
       }
     } catch (err) {
       console.error('Registration network error:', err);
@@ -155,6 +158,43 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             Enter your team details below. All fields start empty. You will receive an independent randomized question sequence upon starting.
           </p>
         </div>
+
+        {/* If team already registered, provide instant access to waiting room */}
+        {existingCode && (team?.team_name || localStorage.getItem('nexus_team')) && (
+          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl p-6 text-center space-y-3 animate-fadeIn">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase border border-emerald-500/30">
+              <Check className="w-3.5 h-3.5" />
+              <span>Team Already Registered</span>
+            </span>
+            <h3 className="text-xl font-black text-white">
+              {team?.team_name || JSON.parse(localStorage.getItem('nexus_team') || '{}').team_name || 'Your Team'}
+            </h3>
+            <p className="text-xs text-slate-300">
+              Your registered team code is <span className="font-mono font-bold text-amber-400">{existingCode}</span>.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('/waiting')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center space-x-2"
+              >
+                <span>ENTER WAITING ROOM</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  logoutTeam();
+                  setTeamCode('');
+                  fetchTeamCode();
+                }}
+                className="text-xs text-slate-400 hover:text-rose-400 transition underline cursor-pointer py-2"
+              >
+                Register a different team
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Unique Team Code Card */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 text-center space-y-3 shadow-2xl relative overflow-hidden">

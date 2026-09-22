@@ -49,23 +49,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            {teamCode ? (
-              <button
-                onClick={() => onNavigate('/quiz')}
-                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-lg tracking-wide shadow-2xl shadow-amber-500/30 flex items-center justify-center space-x-3 transition-transform active:scale-95 cursor-pointer"
-              >
-                <span>RESUME QUIZ ({teamCode})</span>
-                <ArrowRight className="w-6 h-6 stroke-[3]" />
-              </button>
-            ) : (
-              <button
-                onClick={() => onNavigate('/join')}
-                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-lg tracking-wide shadow-2xl shadow-amber-500/30 flex items-center justify-center space-x-3 transition-transform active:scale-95 cursor-pointer"
-              >
-                <span>JOIN QUIZ</span>
-                <ArrowRight className="w-6 h-6 stroke-[3]" />
-              </button>
-            )}
+            <button
+              onClick={async () => {
+                const code = teamCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+                if (!code) {
+                  onNavigate('/join');
+                  return;
+                }
+                try {
+                  const res = await fetch(`/api/quiz/current?teamCode=${code}`);
+                  const data = await res.json();
+                  if (data.eventState === 'LIVE' && !data.completed) {
+                    onNavigate('/quiz');
+                  } else {
+                    onNavigate('/waiting');
+                  }
+                } catch {
+                  onNavigate('/waiting');
+                }
+              }}
+              className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-lg tracking-wide shadow-2xl shadow-amber-500/30 flex items-center justify-center space-x-3 transition-transform active:scale-95 cursor-pointer"
+            >
+              <span>{teamCode ? `ENTER QUIZ (${teamCode})` : 'JOIN QUIZ'}</span>
+              <ArrowRight className="w-6 h-6 stroke-[3]" />
+            </button>
 
             <button
               onClick={() => onNavigate('/leaderboard')}

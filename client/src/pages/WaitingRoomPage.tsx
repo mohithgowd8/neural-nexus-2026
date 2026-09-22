@@ -8,21 +8,27 @@ interface WaitingRoomPageProps {
 }
 
 export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({ onNavigate }) => {
-  const { team, teamCode } = useTeam();
+  const { team: contextTeam, teamCode: contextCode } = useTeam();
   const { socket } = useSocket();
   const [checking, setChecking] = useState(false);
 
+  // Fallback to localStorage immediately
+  const savedTeamStr = typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team') : null;
+  const team = contextTeam || (savedTeamStr ? JSON.parse(savedTeamStr) : null);
+  const teamCode = contextCode || (typeof localStorage !== 'undefined' ? localStorage.getItem('nexus_team_code') : null);
+
   useEffect(() => {
-    if (!teamCode) {
+    const code = teamCode || localStorage.getItem('nexus_team_code');
+    if (!code) {
       onNavigate('/join');
       return;
     }
 
-    // Check if event is already live
+    // Check if event is live
     const checkState = async () => {
       try {
         setChecking(true);
-        const res = await fetch(`/api/quiz/current?teamCode=${teamCode}`);
+        const res = await fetch(`/api/quiz/current?teamCode=${code}`);
         const data = await res.json();
         if (data.eventState === 'LIVE' && !data.completed) {
           onNavigate('/quiz');
@@ -35,7 +41,7 @@ export const WaitingRoomPage: React.FC<WaitingRoomPageProps> = ({ onNavigate }) 
     };
 
     checkState();
-    const interval = setInterval(checkState, 3000);
+    const interval = setInterval(checkState, 2000);
 
     return () => clearInterval(interval);
   }, [teamCode, onNavigate]);

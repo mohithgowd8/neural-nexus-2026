@@ -33,7 +33,7 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
     }
   }
 
-  const getEventStatus = (): string => localStorage.getItem('nexus_event_status') || 'LIVE';
+  const getEventStatus = (): string => localStorage.getItem('nexus_event_status') || 'WAITING';
 
   // 1. Health check
   if (pathname === '/api/health') {
@@ -100,7 +100,7 @@ export async function handleStandaloneApi(url: string, init?: RequestInit): Prom
       teamCode,
       sessionId,
       team,
-      eventState: 'LIVE'
+      eventState: getEventStatus()
     }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
 
