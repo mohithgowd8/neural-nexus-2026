@@ -15,7 +15,8 @@ window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Pr
     const isGitHubPages = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
     if (isGitHubPages) {
       try {
-        const fullUrl = url.startsWith('http') ? url : `${LIVE_BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        const apiPathAndQuery = url.substring(url.indexOf('/api/'));
+        const fullUrl = `${LIVE_BACKEND_URL}${apiPathAndQuery}`;
         const res = await originalFetch(fullUrl, init);
         return res;
       } catch (err) {
