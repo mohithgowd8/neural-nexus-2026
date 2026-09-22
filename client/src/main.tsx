@@ -4,7 +4,9 @@ import App from './App.js';
 import './index.css';
 import { handleStandaloneApi } from './utils/standaloneEngine.js';
 
-// Intercept fetch for GitHub Pages or static host deployments
+export const LIVE_BACKEND_URL = 'https://apparently-responding-conversation-consultants.trycloudflare.com';
+
+// Intercept fetch for GitHub Pages or static host deployments to route to central backend
 const originalFetch = window.fetch;
 window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : input.url);
@@ -12,8 +14,15 @@ window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Pr
   if (url.includes('/api/')) {
     const isGitHubPages = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
     if (isGitHubPages) {
-      const mockRes = await handleStandaloneApi(url, init);
-      if (mockRes) return mockRes;
+      try {
+        const fullUrl = url.startsWith('http') ? url : `${LIVE_BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        const res = await originalFetch(fullUrl, init);
+        return res;
+      } catch (err) {
+        console.warn('Central live backend unreachable, using standalone fallback:', err);
+        const mockRes = await handleStandaloneApi(url, init);
+        if (mockRes) return mockRes;
+      }
     } else {
       try {
         const res = await originalFetch(input, init);
