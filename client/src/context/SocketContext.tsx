@@ -25,7 +25,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   useEffect(() => {
-    const liveBackendUrl = (typeof localStorage !== 'undefined' && localStorage.getItem('nexus_backend_url')) || 'https://tex-directories-auctions-floating.trycloudflare.com';
+    const liveBackendUrl = (typeof localStorage !== 'undefined' && localStorage.getItem('nexus_backend_url')) || 'https://geo-careful-momentum-lounge.trycloudflare.com';
     const socketUrl = isStaticPlatform ? liveBackendUrl : (window.location.port === '5173' ? 'http://localhost:5000' : window.location.origin);
 
     const socketInstance = io(socketUrl, {
