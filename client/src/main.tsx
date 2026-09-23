@@ -4,7 +4,7 @@ import App from './App.js';
 import './index.css';
 import { handleStandaloneApi } from './utils/standaloneEngine.js';
 
-export const LIVE_BACKEND_URL = (typeof localStorage !== 'undefined' && localStorage.getItem('nexus_backend_url')) || 'https://geo-careful-momentum-lounge.trycloudflare.com';
+export const LIVE_BACKEND_URL = (typeof localStorage !== 'undefined' && localStorage.getItem('nexus_backend_url')) || 'https://officer-biography-humidity-dude.trycloudflare.com';
 
 // Intercept fetch for GitHub Pages or static host deployments to route to central backend
 const originalFetch = window.fetch;
